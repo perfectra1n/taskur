@@ -1,0 +1,52 @@
+# Rust
+/target
+**/target
+**/*.rs.bk
+Cargo.lock
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node
+node_modules/
+dist/
+.vite/
+*.log
+pnpm-lock.yaml
+package-lock.json
+yarn.lock
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads
+uploads/
+*.tmp
+
+# Docker
+.dockerignore
+
+# Build artifacts
+build/
+out/
+
+# Testing
+coverage/
+.nyc_output/
+
+# Misc
+*.bak
+*.cache
+
+# AI
+.playwright-mcp/

@@ -1,0 +1,16 @@
+{
+  "name": "taskur",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "pnpm run --parallel dev:*",
+    "dev:backend": "cd backend && cargo watch -x run",
+    "dev:frontend": "cd frontend && pnpm dev",
+    "build": "pnpm run build:backend && pnpm run build:frontend",
+    "build:backend": "cd backend && cargo build --release",
+    "build:frontend": "cd frontend && pnpm build",
+    "migrate": "cd backend && sqlx migrate run",
+    "migrate:create": "cd backend && sqlx migrate add",
+    "setup": "pnpm install && cp .env.example .env"
+  }
+}
