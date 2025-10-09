@@ -2,18 +2,60 @@ use crate::{
     db::DbPool,
     errors::{AppError, AppResult},
     middleware::AuthenticatedUser,
-    models::{CreateTaskRequest, Task, TaskFilter, TaskPriority, TaskStatus, UpdateTaskRequest},
+    models::{CreateTaskRequest, Task, TaskFilter, TaskPriority, TaskStatus, UnifiedSearchResult, UpdateTaskRequest},
 };
 use actix_web::{web, HttpResponse};
 use chrono::Utc;
+use utoipa;
 use uuid::Uuid;
 use validator::Validate;
 
+/// List all tasks for the authenticated user.
+///
+/// Returns a list of tasks with optional filtering by status, priority, tags,
+/// and list membership. Supports search via trigram similarity.
+///
+/// # Errors
+///
+/// Returns an error if database operation fails.
+#[utoipa::path(
+    get,
+    path = "/api/tasks",
+    params(TaskFilter),
+    responses(
+        (status = 200, description = "List of tasks", body = Vec<Task>),
+        (status = 401, description = "Not authenticated"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tasks",
+    security(("bearer_auth" = []))
+)]
 pub async fn list_tasks(
     pool: web::Data<DbPool>,
     auth: AuthenticatedUser,
     query: web::Query<TaskFilter>,
 ) -> AppResult<HttpResponse> {
+    // If there's a search query, use the trigram-based search function
+    if let Some(ref search_query) = query.search {
+        let limit = query.limit.unwrap_or(50);
+
+        let tasks = sqlx::query_as::<_, Task>(
+            "SELECT * FROM search_tasks($1, $2, $3, $4, $5, $6, $7)"
+        )
+        .bind(auth.user_id)
+        .bind(search_query)
+        .bind(&query.status)
+        .bind(&query.priority)
+        .bind(&query.tag)
+        .bind(&query.list_id)
+        .bind(limit)
+        .fetch_all(pool.as_ref())
+        .await?;
+
+        return Ok(HttpResponse::Ok().json(tasks));
+    }
+
+    // Standard filtering without search
     let mut sql = "SELECT * FROM tasks WHERE user_id = $1".to_string();
     let mut params_count = 1;
 
@@ -32,13 +74,11 @@ pub async fn list_tasks(
         sql.push_str(&format!(" AND ${}::text = ANY(tags)", params_count));
     }
 
-    let search_pattern = query.search.as_ref().map(|s| format!("%{}%", s));
-
-    if search_pattern.is_some() {
+    if let Some(ref list_id) = query.list_id {
         params_count += 1;
         sql.push_str(&format!(
-            " AND (title ILIKE ${} OR description ILIKE ${})",
-            params_count, params_count
+            " AND EXISTS (SELECT 1 FROM task_lists tl WHERE tl.task_id = tasks.id AND tl.list_id = ${})",
+            params_count
         ));
     }
 
@@ -59,8 +99,8 @@ pub async fn list_tasks(
         query_builder = query_builder.bind(tag);
     }
 
-    if let Some(ref pattern) = search_pattern {
-        query_builder = query_builder.bind(pattern);
+    if let Some(ref list_id) = query.list_id {
+        query_builder = query_builder.bind(list_id);
     }
 
     let tasks = query_builder
@@ -70,6 +110,29 @@ pub async fn list_tasks(
     Ok(HttpResponse::Ok().json(tasks))
 }
 
+/// Create a new task.
+///
+/// Creates a new task with the provided details and optionally associates
+/// it with one or more lists.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Validation fails
+/// - Database operation fails
+#[utoipa::path(
+    post,
+    path = "/api/tasks",
+    request_body = CreateTaskRequest,
+    responses(
+        (status = 201, description = "Task created successfully", body = Task),
+        (status = 400, description = "Invalid request"),
+        (status = 401, description = "Not authenticated"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tasks",
+    security(("bearer_auth" = []))
+)]
 pub async fn create_task(
     pool: web::Data<DbPool>,
     auth: AuthenticatedUser,
@@ -130,6 +193,31 @@ pub async fn create_task(
     Ok(HttpResponse::Created().json(task))
 }
 
+/// Get a specific task by ID.
+///
+/// Retrieves detailed information about a single task.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Task not found
+/// - User doesn't own the task
+/// - Database operation fails
+#[utoipa::path(
+    get,
+    path = "/api/tasks/{id}",
+    params(
+        ("id" = Uuid, Path, description = "Task ID")
+    ),
+    responses(
+        (status = 200, description = "Task details", body = Task),
+        (status = 401, description = "Not authenticated"),
+        (status = 404, description = "Task not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tasks",
+    security(("bearer_auth" = []))
+)]
 pub async fn get_task(
     pool: web::Data<DbPool>,
     auth: AuthenticatedUser,
@@ -149,6 +237,33 @@ pub async fn get_task(
     Ok(HttpResponse::Ok().json(task))
 }
 
+/// Update an existing task.
+///
+/// Updates task properties. Only provided fields will be updated.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Task not found
+/// - User doesn't own the task
+/// - Database operation fails
+#[utoipa::path(
+    put,
+    path = "/api/tasks/{id}",
+    request_body = UpdateTaskRequest,
+    params(
+        ("id" = Uuid, Path, description = "Task ID")
+    ),
+    responses(
+        (status = 200, description = "Task updated successfully", body = Task),
+        (status = 400, description = "Invalid request"),
+        (status = 401, description = "Not authenticated"),
+        (status = 404, description = "Task not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tasks",
+    security(("bearer_auth" = []))
+)]
 pub async fn update_task(
     pool: web::Data<DbPool>,
     auth: AuthenticatedUser,
@@ -206,6 +321,31 @@ pub async fn update_task(
     Ok(HttpResponse::Ok().json(updated_task))
 }
 
+/// Delete a task.
+///
+/// Permanently deletes a task and its associations.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Task not found
+/// - User doesn't own the task
+/// - Database operation fails
+#[utoipa::path(
+    delete,
+    path = "/api/tasks/{id}",
+    params(
+        ("id" = Uuid, Path, description = "Task ID")
+    ),
+    responses(
+        (status = 204, description = "Task deleted successfully"),
+        (status = 401, description = "Not authenticated"),
+        (status = 404, description = "Task not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Tasks",
+    security(("bearer_auth" = []))
+)]
 pub async fn delete_task(
     pool: web::Data<DbPool>,
     auth: AuthenticatedUser,
@@ -226,4 +366,61 @@ pub async fn delete_task(
     }
 
     Ok(HttpResponse::NoContent().finish())
+}
+
+/// Unified search across all entities (tasks, lists, tags, comments).
+///
+/// This endpoint provides a comprehensive search that returns results from all
+/// entity types, ranked by relevance using PostgreSQL trigram similarity.
+///
+/// # Query Parameters
+/// - `q`: Search query string (required)
+/// - `limit`: Maximum number of results (optional, default: 50)
+///
+/// # Returns
+/// Array of search results with entity type, ID, title, description, and relevance score.
+#[utoipa::path(
+    get,
+    path = "/api/search",
+    params(UnifiedSearchQuery),
+    responses(
+        (status = 200, description = "Search results", body = Vec<UnifiedSearchResult>),
+        (status = 401, description = "Not authenticated"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Search",
+    security(("bearer_auth" = []))
+)]
+pub async fn unified_search(
+    pool: web::Data<DbPool>,
+    auth: AuthenticatedUser,
+    query: web::Query<UnifiedSearchQuery>,
+) -> AppResult<HttpResponse> {
+    if query.q.is_empty() {
+        return Ok(HttpResponse::Ok().json(Vec::<UnifiedSearchResult>::new()));
+    }
+
+    let limit = query.limit.unwrap_or(50);
+
+    let results = sqlx::query_as::<_, UnifiedSearchResult>(
+        "SELECT * FROM unified_search($1, $2, $3)"
+    )
+    .bind(auth.user_id)
+    .bind(&query.q)
+    .bind(limit)
+    .fetch_all(pool.as_ref())
+    .await?;
+
+    Ok(HttpResponse::Ok().json(results))
+}
+
+/// Query parameters for unified search
+#[derive(Debug, serde::Deserialize, utoipa::ToSchema, utoipa::IntoParams)]
+pub struct UnifiedSearchQuery {
+    /// Search query string
+    #[schema(example = "project")]
+    pub q: String,
+    /// Maximum number of results (default: 50)
+    #[schema(example = 20)]
+    pub limit: Option<i32>,
 }

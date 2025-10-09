@@ -9,6 +9,20 @@ use chrono::Utc;
 use uuid::Uuid;
 use validator::Validate;
 
+/// List all lists for the authenticated user.
+///
+/// Returns all lists ordered by position and creation date.
+#[utoipa::path(
+    get,
+    path = "/api/lists",
+    responses(
+        (status = 200, description = "List of lists", body = Vec<List>),
+        (status = 401, description = "Not authenticated"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Lists",
+    security(("bearer_auth" = []))
+)]
 pub async fn list_lists(
     pool: web::Data<DbPool>,
     auth: AuthenticatedUser,
@@ -23,6 +37,22 @@ pub async fn list_lists(
     Ok(HttpResponse::Ok().json(lists))
 }
 
+/// Create a new list.
+///
+/// Creates a new list with the provided details.
+#[utoipa::path(
+    post,
+    path = "/api/lists",
+    request_body = CreateListRequest,
+    responses(
+        (status = 201, description = "List created successfully", body = List),
+        (status = 400, description = "Invalid request"),
+        (status = 401, description = "Not authenticated"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Lists",
+    security(("bearer_auth" = []))
+)]
 pub async fn create_list(
     pool: web::Data<DbPool>,
     auth: AuthenticatedUser,
@@ -59,6 +89,24 @@ pub async fn create_list(
     Ok(HttpResponse::Created().json(list))
 }
 
+/// Get a specific list by ID.
+///
+/// Retrieves detailed information about a single list.
+#[utoipa::path(
+    get,
+    path = "/api/lists/{id}",
+    params(
+        ("id" = Uuid, Path, description = "List ID")
+    ),
+    responses(
+        (status = 200, description = "List details", body = List),
+        (status = 401, description = "Not authenticated"),
+        (status = 404, description = "List not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Lists",
+    security(("bearer_auth" = []))
+)]
 pub async fn get_list(
     pool: web::Data<DbPool>,
     auth: AuthenticatedUser,
@@ -78,6 +126,26 @@ pub async fn get_list(
     Ok(HttpResponse::Ok().json(list))
 }
 
+/// Update an existing list.
+///
+/// Updates list properties. Only provided fields will be updated.
+#[utoipa::path(
+    put,
+    path = "/api/lists/{id}",
+    request_body = UpdateListRequest,
+    params(
+        ("id" = Uuid, Path, description = "List ID")
+    ),
+    responses(
+        (status = 200, description = "List updated successfully", body = List),
+        (status = 400, description = "Invalid request"),
+        (status = 401, description = "Not authenticated"),
+        (status = 404, description = "List not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Lists",
+    security(("bearer_auth" = []))
+)]
 pub async fn update_list(
     pool: web::Data<DbPool>,
     auth: AuthenticatedUser,
@@ -110,6 +178,24 @@ pub async fn update_list(
     Ok(HttpResponse::Ok().json(updated_list))
 }
 
+/// Delete a list.
+///
+/// Permanently deletes a list.
+#[utoipa::path(
+    delete,
+    path = "/api/lists/{id}",
+    params(
+        ("id" = Uuid, Path, description = "List ID")
+    ),
+    responses(
+        (status = 204, description = "List deleted successfully"),
+        (status = 401, description = "Not authenticated"),
+        (status = 404, description = "List not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Lists",
+    security(("bearer_auth" = []))
+)]
 pub async fn delete_list(
     pool: web::Data<DbPool>,
     auth: AuthenticatedUser,

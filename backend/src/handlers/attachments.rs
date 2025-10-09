@@ -14,6 +14,25 @@ use uuid::Uuid;
 const MAX_FILE_SIZE: usize = 10 * 1024 * 1024; // 10MB
 const UPLOAD_DIR: &str = "./uploads";
 
+/// Upload file attachments to a task.
+///
+/// Accepts multipart/form-data file uploads. Maximum file size is 10MB.
+#[utoipa::path(
+    post,
+    path = "/api/tasks/{task_id}/attachments",
+    params(
+        ("task_id" = Uuid, Path, description = "Task ID")
+    ),
+    request_body(content_type = "multipart/form-data", description = "File upload"),
+    responses(
+        (status = 201, description = "Files uploaded successfully", body = Vec<AttachmentResponse>),
+        (status = 400, description = "Invalid request or file too large"),
+        (status = 401, description = "Not authenticated"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Attachments",
+    security(("bearer_auth" = []))
+)]
 pub async fn upload_attachment(
     pool: web::Data<DbPool>,
     auth: AuthenticatedUser,
@@ -93,6 +112,23 @@ pub async fn upload_attachment(
     Ok(HttpResponse::Created().json(attachments))
 }
 
+/// List all attachments for a task.
+///
+/// Returns attachment metadata for all files attached to the task.
+#[utoipa::path(
+    get,
+    path = "/api/tasks/{task_id}/attachments",
+    params(
+        ("task_id" = Uuid, Path, description = "Task ID")
+    ),
+    responses(
+        (status = 200, description = "List of attachments", body = Vec<AttachmentResponse>),
+        (status = 401, description = "Not authenticated"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Attachments",
+    security(("bearer_auth" = []))
+)]
 pub async fn list_attachments(
     pool: web::Data<DbPool>,
     _auth: AuthenticatedUser,
@@ -115,6 +151,24 @@ pub async fn list_attachments(
     Ok(HttpResponse::Ok().json(responses))
 }
 
+/// Download an attachment file.
+///
+/// Returns the file content with appropriate headers for download.
+#[utoipa::path(
+    get,
+    path = "/api/attachments/{id}",
+    params(
+        ("id" = Uuid, Path, description = "Attachment ID")
+    ),
+    responses(
+        (status = 200, description = "File download", content_type = "application/octet-stream"),
+        (status = 401, description = "Not authenticated or access denied"),
+        (status = 404, description = "Attachment not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Attachments",
+    security(("bearer_auth" = []))
+)]
 pub async fn download_attachment(
     pool: web::Data<DbPool>,
     auth: AuthenticatedUser,
@@ -145,6 +199,137 @@ pub async fn download_attachment(
     Ok(file)
 }
 
+/// Upload file attachments to a comment.
+///
+/// Accepts multipart/form-data file uploads attached to a specific comment.
+#[utoipa::path(
+    post,
+    path = "/api/tasks/{task_id}/comments/{comment_id}/attachments",
+    params(
+        ("task_id" = Uuid, Path, description = "Task ID"),
+        ("comment_id" = Uuid, Path, description = "Comment ID")
+    ),
+    request_body(content_type = "multipart/form-data", description = "File upload"),
+    responses(
+        (status = 201, description = "Files uploaded successfully", body = Vec<AttachmentResponse>),
+        (status = 400, description = "Invalid request or file too large"),
+        (status = 401, description = "Not authenticated"),
+        (status = 404, description = "Comment not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Attachments",
+    security(("bearer_auth" = []))
+)]
+pub async fn upload_comment_attachment(
+    pool: web::Data<DbPool>,
+    auth: AuthenticatedUser,
+    path: web::Path<(Uuid, Uuid)>,
+    mut payload: Multipart,
+) -> AppResult<HttpResponse> {
+    let (task_id, comment_id) = path.into_inner();
+
+    // Verify comment exists and user has access
+    let _comment = sqlx::query!(
+        "SELECT c.* FROM comments c
+         JOIN tasks t ON c.task_id = t.id
+         WHERE c.id = $1 AND c.task_id = $2 AND t.user_id = $3",
+        comment_id,
+        task_id,
+        auth.user_id
+    )
+    .fetch_optional(pool.as_ref())
+    .await?
+    .ok_or_else(|| AppError::NotFound("Comment not found".to_string()))?;
+
+    // Create upload directory if it doesn't exist
+    std::fs::create_dir_all(UPLOAD_DIR)
+        .map_err(|e| AppError::InternalError(format!("Failed to create upload directory: {}", e)))?;
+
+    let mut attachments = Vec::new();
+
+    while let Some(field) = payload.next().await {
+        let mut field = field.map_err(|e| AppError::InternalError(e.to_string()))?;
+
+        let original_filename = field
+            .content_disposition()
+            .and_then(|cd| cd.get_filename().map(|s| s.to_string()))
+            .ok_or_else(|| AppError::ValidationError("Filename is required".to_string()))?;
+
+        let mime_type = field.content_type()
+            .map(|ct| ct.to_string())
+            .unwrap_or_else(|| "application/octet-stream".to_string());
+
+        // Generate unique filename
+        let file_id = Uuid::new_v4();
+        let filename = format!("{}-{}", file_id, original_filename);
+        let file_path = format!("{}/{}", UPLOAD_DIR, filename);
+
+        // Save file
+        let mut file = std::fs::File::create(&file_path)
+            .map_err(|e| AppError::InternalError(format!("Failed to create file: {}", e)))?;
+
+        let mut file_size: i64 = 0;
+
+        while let Some(chunk) = field.next().await {
+            let data = chunk.map_err(|e| AppError::InternalError(e.to_string()))?;
+
+            file_size += data.len() as i64;
+
+            if file_size > MAX_FILE_SIZE as i64 {
+                // Delete the partially written file
+                let _ = std::fs::remove_file(&file_path);
+                return Err(AppError::ValidationError(
+                    "File size exceeds maximum limit of 10MB".to_string(),
+                ));
+            }
+
+            file.write_all(&data)
+                .map_err(|e| AppError::InternalError(format!("Failed to write file: {}", e)))?;
+        }
+
+        // Save attachment metadata to database (linked to comment)
+        let attachment = sqlx::query_as::<_, Attachment>(
+            "INSERT INTO attachments (id, task_id, comment_id, user_id, filename, original_filename, file_path, file_size, mime_type, created_at)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+             RETURNING *"
+        )
+        .bind(file_id)
+        .bind(Some(task_id))
+        .bind(Some(comment_id))
+        .bind(auth.user_id)
+        .bind(&filename)
+        .bind(&original_filename)
+        .bind(&file_path)
+        .bind(file_size)
+        .bind(&mime_type)
+        .bind(Utc::now())
+        .fetch_one(pool.as_ref())
+        .await?;
+
+        attachments.push(AttachmentResponse::from(attachment));
+    }
+
+    Ok(HttpResponse::Created().json(attachments))
+}
+
+/// Delete an attachment.
+///
+/// Permanently deletes an attachment and its associated file.
+#[utoipa::path(
+    delete,
+    path = "/api/attachments/{id}",
+    params(
+        ("id" = Uuid, Path, description = "Attachment ID")
+    ),
+    responses(
+        (status = 204, description = "Attachment deleted successfully"),
+        (status = 401, description = "Not authenticated"),
+        (status = 404, description = "Attachment not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Attachments",
+    security(("bearer_auth" = []))
+)]
 pub async fn delete_attachment(
     pool: web::Data<DbPool>,
     auth: AuthenticatedUser,

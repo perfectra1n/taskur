@@ -1,13 +1,23 @@
 use actix_web::{error::ResponseError, http::StatusCode, HttpResponse};
 use serde::Serialize;
 use std::fmt;
+use utoipa::ToSchema;
 
+/// Application error types.
+///
+/// Defines all possible error conditions that can occur in the application.
+/// Each variant maps to an appropriate HTTP status code.
 #[derive(Debug)]
 pub enum AppError {
+    /// Database operation error
     DatabaseError(sqlx::Error),
+    /// Input validation error
     ValidationError(String),
+    /// Authentication/authorization error
     AuthenticationError(String),
+    /// Resource not found error
     NotFound(String),
+    /// Internal server error
     InternalError(String),
 }
 
@@ -23,8 +33,13 @@ impl fmt::Display for AppError {
     }
 }
 
-#[derive(Serialize)]
+/// Standard error response format.
+///
+/// All API errors are returned in this consistent format.
+#[derive(Serialize, ToSchema)]
 struct ErrorResponse {
+    /// Error message describing what went wrong
+    #[schema(example = "Validation error: Email already registered")]
     error: String,
 }
 

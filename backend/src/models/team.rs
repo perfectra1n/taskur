@@ -1,56 +1,108 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use utoipa::ToSchema;
 use uuid::Uuid;
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+/// Team database model for collaboration.
+///
+/// Teams allow multiple users to collaborate on shared tasks
+/// and projects with role-based access.
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct Team {
+    /// Unique identifier for the team
     pub id: Uuid,
+    /// Name of the team
+    #[schema(example = "Engineering Team")]
     pub name: String,
+    /// Optional team description
+    #[schema(example = "Backend development team")]
     pub description: Option<String>,
+    /// ID of the user who owns/created the team
     pub owner_id: Uuid,
+    /// Timestamp when the team was created
     pub created_at: DateTime<Utc>,
+    /// Timestamp when the team was last updated
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize, validator::Validate)]
+/// Request payload for creating a new team.
+#[derive(Debug, Deserialize, validator::Validate, ToSchema)]
 pub struct CreateTeamRequest {
+    /// Team name (1-255 characters)
     #[validate(length(min = 1, max = 255, message = "Name must be 1-255 characters"))]
+    #[schema(example = "Engineering Team")]
     pub name: String,
+    /// Optional team description
+    #[schema(example = "Backend development team")]
     pub description: Option<String>,
 }
 
-#[derive(Debug, Deserialize)]
+/// Request payload for updating an existing team.
+///
+/// All fields are optional - only provided fields will be updated.
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateTeamRequest {
+    /// Updated team name
+    #[schema(example = "Engineering Team")]
     pub name: Option<String>,
+    /// Updated team description
+    #[schema(example = "Full-stack development team")]
     pub description: Option<String>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+/// Team-User association model.
+///
+/// Represents the relationship between a team and its members,
+/// including role information.
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
 pub struct TeamUserAssociation {
+    /// Team ID
     pub team_id: Uuid,
+    /// User ID
     pub user_id: Uuid,
+    /// User's role in the team
+    #[schema(example = "developer")]
     pub role: String,
+    /// Timestamp when the user joined the team
     pub joined_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Deserialize)]
+/// Request payload for adding a member to a team.
+#[derive(Debug, Deserialize, ToSchema)]
 pub struct AddTeamMemberRequest {
+    /// ID of the user to add
     pub user_id: Uuid,
+    /// Optional role for the user (defaults to 'member')
+    #[schema(example = "developer")]
     pub role: Option<String>,
 }
 
-#[derive(Debug, Serialize)]
+/// Team with full member details response.
+///
+/// Contains team information along with all member details.
+#[derive(Debug, Serialize, ToSchema)]
 pub struct TeamWithMembers {
+    /// Team information
     #[serde(flatten)]
     pub team: Team,
+    /// List of team members with user details
     pub members: Vec<TeamMemberWithUser>,
 }
 
-#[derive(Debug, Serialize, FromRow)]
+/// Team member with user information.
+///
+/// Combines user details with team membership information.
+#[derive(Debug, Serialize, FromRow, ToSchema)]
 pub struct TeamMemberWithUser {
+    /// User ID
     pub user_id: Uuid,
+    /// User's email address
+    #[schema(example = "user@example.com")]
     pub email: String,
+    /// User's role in the team
+    #[schema(example = "developer")]
     pub role: String,
+    /// When the user joined the team
     pub joined_at: DateTime<Utc>,
 }

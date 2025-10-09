@@ -19,7 +19,10 @@ A beautiful, self-hosted task management application inspired by TickTick, built
 - **Attachments**: Upload and attach files/images to tasks and comments
   - Support for images, documents, and files up to 10MB
   - Secure file storage with access control
-- **Search & Filtering**: Full-text search and advanced filtering capabilities
+- **Search & Filtering**:
+  - Full-text search across task titles and descriptions
+  - Advanced filtering by status, priority, tags, and due dates
+  - Real-time search results
 
 ### Frontend (React + TypeScript + Vite + TipTap + Tailwind)
 - **Modern UI**: Clean, minimal interface with light/dark mode

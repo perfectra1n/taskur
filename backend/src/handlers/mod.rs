@@ -1,11 +1,11 @@
-mod auth;
-mod tasks;
-mod lists;
-mod tags;
-mod comments;
-mod attachments;
-mod team_members;
-mod teams;
+pub mod auth;
+pub mod tasks;
+pub mod lists;
+pub mod tags;
+pub mod comments;
+pub mod attachments;
+pub mod team_members;
+pub mod teams;
 
 use actix_web::web;
 
@@ -18,6 +18,8 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
                     .route("/login", web::post().to(auth::login))
                     .route("/me", web::get().to(auth::get_current_user))
             )
+            // Unified search endpoint across all entities
+            .route("/search", web::get().to(tasks::unified_search))
             .service(
                 web::scope("/tasks")
                     .route("", web::get().to(tasks::list_tasks))
@@ -29,6 +31,7 @@ pub fn configure(cfg: &mut web::ServiceConfig) {
                     .route("/{task_id}/comments", web::post().to(comments::create_comment))
                     .route("/{task_id}/comments/{comment_id}", web::put().to(comments::update_comment))
                     .route("/{task_id}/comments/{comment_id}", web::delete().to(comments::delete_comment))
+                    .route("/{task_id}/comments/{comment_id}/attachments", web::post().to(attachments::upload_comment_attachment))
                     .route("/{task_id}/attachments", web::get().to(attachments::list_attachments))
                     .route("/{task_id}/attachments", web::post().to(attachments::upload_attachment))
             )

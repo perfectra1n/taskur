@@ -10,6 +10,7 @@ import { X, Calendar, AlertCircle, Trash2, MessageSquare, User, Clock, Image as 
 import { TiptapEditor } from '../editor/TiptapEditor';
 import { ReminderConfig } from './ReminderConfig';
 import { HeroImageUpload } from './HeroImageUpload';
+import { CommentSection } from './CommentSection';
 import { format } from 'date-fns';
 
 interface TaskDetailProps {
@@ -249,13 +250,15 @@ export function TaskDetail({ task, onClose }: TaskDetailProps) {
 
         {/* Comments */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
             <MessageSquare className="w-4 h-4" />
             Comments ({comments.length})
           </label>
-          <div className="text-sm text-gray-500 dark:text-gray-400">
-            {comments.length === 0 ? 'No comments yet' : `${comments.length} comments`}
-          </div>
+          <CommentSection
+            taskId={task.id}
+            comments={comments}
+            attachments={attachments}
+          />
         </div>
       </div>
 

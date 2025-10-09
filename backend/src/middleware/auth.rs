@@ -1,9 +1,29 @@
+//! JWT authentication middleware.
+//!
+//! Provides authentication extraction for protected routes.
+
 use crate::{config::Config, errors::AppError, utils};
 use actix_web::{dev::Payload, FromRequest, HttpRequest};
 use std::future::{ready, Ready};
 use uuid::Uuid;
 
+/// Authenticated user extractor.
+///
+/// This struct can be used as a parameter in handler functions to automatically
+/// verify JWT authentication and extract the user ID from the token.
+///
+/// # Example
+///
+/// ```no_run
+/// use actix_web::{web, HttpResponse};
+/// use taskur_backend::middleware::AuthenticatedUser;
+///
+/// async fn protected_route(auth: AuthenticatedUser) -> HttpResponse {
+///     HttpResponse::Ok().json(format!("User ID: {}", auth.user_id))
+/// }
+/// ```
 pub struct AuthenticatedUser {
+    /// ID of the authenticated user extracted from the JWT token
     pub user_id: Uuid,
 }
 
@@ -11,6 +31,10 @@ impl FromRequest for AuthenticatedUser {
     type Error = AppError;
     type Future = Ready<Result<Self, Self::Error>>;
 
+    /// Extract authenticated user from request.
+    ///
+    /// Validates the JWT token in the Authorization header and extracts
+    /// the user ID. Returns an error if authentication fails.
     fn from_request(req: &HttpRequest, _: &mut Payload) -> Self::Future {
         let config = Config::from_env();
 

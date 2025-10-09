@@ -9,6 +9,24 @@ use chrono::Utc;
 use uuid::Uuid;
 use validator::Validate;
 
+/// List all comments for a task.
+///
+/// Returns comments ordered by creation date.
+#[utoipa::path(
+    get,
+    path = "/api/tasks/{task_id}/comments",
+    params(
+        ("task_id" = Uuid, Path, description = "Task ID")
+    ),
+    responses(
+        (status = 200, description = "List of comments", body = Vec<Comment>),
+        (status = 401, description = "Not authenticated"),
+        (status = 404, description = "Task not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Comments",
+    security(("bearer_auth" = []))
+)]
 pub async fn list_comments(
     pool: web::Data<DbPool>,
     auth: AuthenticatedUser,
@@ -36,6 +54,26 @@ pub async fn list_comments(
     Ok(HttpResponse::Ok().json(comments))
 }
 
+/// Create a new comment on a task.
+///
+/// Adds a comment to the specified task.
+#[utoipa::path(
+    post,
+    path = "/api/tasks/{task_id}/comments",
+    request_body = CreateCommentRequest,
+    params(
+        ("task_id" = Uuid, Path, description = "Task ID")
+    ),
+    responses(
+        (status = 201, description = "Comment created successfully", body = Comment),
+        (status = 400, description = "Invalid request"),
+        (status = 401, description = "Not authenticated"),
+        (status = 404, description = "Task not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Comments",
+    security(("bearer_auth" = []))
+)]
 pub async fn create_comment(
     pool: web::Data<DbPool>,
     auth: AuthenticatedUser,
@@ -74,6 +112,27 @@ pub async fn create_comment(
     Ok(HttpResponse::Created().json(comment))
 }
 
+/// Update an existing comment.
+///
+/// Updates the content of a comment.
+#[utoipa::path(
+    put,
+    path = "/api/tasks/{task_id}/comments/{comment_id}",
+    request_body = UpdateCommentRequest,
+    params(
+        ("task_id" = Uuid, Path, description = "Task ID"),
+        ("comment_id" = Uuid, Path, description = "Comment ID")
+    ),
+    responses(
+        (status = 200, description = "Comment updated successfully", body = Comment),
+        (status = 400, description = "Invalid request"),
+        (status = 401, description = "Not authenticated"),
+        (status = 404, description = "Comment or task not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Comments",
+    security(("bearer_auth" = []))
+)]
 pub async fn update_comment(
     pool: web::Data<DbPool>,
     auth: AuthenticatedUser,
@@ -110,6 +169,25 @@ pub async fn update_comment(
     Ok(HttpResponse::Ok().json(updated_comment))
 }
 
+/// Delete a comment.
+///
+/// Permanently deletes a comment.
+#[utoipa::path(
+    delete,
+    path = "/api/tasks/{task_id}/comments/{comment_id}",
+    params(
+        ("task_id" = Uuid, Path, description = "Task ID"),
+        ("comment_id" = Uuid, Path, description = "Comment ID")
+    ),
+    responses(
+        (status = 204, description = "Comment deleted successfully"),
+        (status = 401, description = "Not authenticated"),
+        (status = 404, description = "Comment not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Comments",
+    security(("bearer_auth" = []))
+)]
 pub async fn delete_comment(
     pool: web::Data<DbPool>,
     auth: AuthenticatedUser,

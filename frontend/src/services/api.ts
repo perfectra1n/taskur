@@ -209,6 +209,21 @@ class ApiClient {
     return response.json();
   }
 
+  async uploadCommentAttachment(taskId: string, commentId: string, formData: FormData): Promise<Attachment[]> {
+    const token = localStorage.getItem('auth_token');
+    const response = await fetch(`${API_BASE}/tasks/${taskId}/comments/${commentId}/attachments`, {
+      method: 'POST',
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      body: formData,
+    });
+
+    if (!response.ok) {
+      throw new Error('Upload failed');
+    }
+
+    return response.json();
+  }
+
   async deleteAttachment(id: string): Promise<void> {
     return this.request<void>(`/attachments/${id}`, {
       method: 'DELETE',

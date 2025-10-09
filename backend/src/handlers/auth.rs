@@ -8,9 +8,33 @@ use crate::{
 };
 use actix_web::{web, HttpResponse};
 use chrono::Utc;
+use utoipa;
 use uuid::Uuid;
 use validator::Validate;
 
+/// Register a new user account.
+///
+/// Creates a new user with the provided email and password.
+/// Passwords are securely hashed using bcrypt before storage.
+/// Returns a JWT token and user information upon successful registration.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Email is already registered
+/// - Validation fails (invalid email format or password too short)
+/// - Database operation fails
+#[utoipa::path(
+    post,
+    path = "/api/auth/register",
+    request_body = CreateUserRequest,
+    responses(
+        (status = 201, description = "User registered successfully", body = AuthResponse),
+        (status = 400, description = "Invalid request or email already registered"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Authentication"
+)]
 pub async fn register(
     pool: web::Data<DbPool>,
     body: web::Json<CreateUserRequest>,
@@ -57,6 +81,28 @@ pub async fn register(
     }))
 }
 
+/// Authenticate a user and generate JWT token.
+///
+/// Validates user credentials and returns a JWT token for authenticated requests.
+/// The token should be included in the Authorization header as "Bearer {token}".
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - Credentials are invalid (wrong email or password)
+/// - Validation fails
+/// - Database operation fails
+#[utoipa::path(
+    post,
+    path = "/api/auth/login",
+    request_body = LoginRequest,
+    responses(
+        (status = 200, description = "Login successful", body = AuthResponse),
+        (status = 401, description = "Invalid credentials"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Authentication"
+)]
 pub async fn login(
     pool: web::Data<DbPool>,
     body: web::Json<LoginRequest>,
@@ -89,6 +135,31 @@ pub async fn login(
     }))
 }
 
+/// Get current authenticated user information.
+///
+/// Retrieves the profile information of the currently authenticated user.
+/// Requires a valid JWT token in the Authorization header.
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - User is not authenticated
+/// - User not found in database
+/// - Database operation fails
+#[utoipa::path(
+    get,
+    path = "/api/auth/me",
+    responses(
+        (status = 200, description = "Current user information", body = UserResponse),
+        (status = 401, description = "Not authenticated"),
+        (status = 404, description = "User not found"),
+        (status = 500, description = "Internal server error")
+    ),
+    tag = "Authentication",
+    security(
+        ("bearer_auth" = [])
+    )
+)]
 pub async fn get_current_user(
     pool: web::Data<DbPool>,
     auth: AuthenticatedUser,
