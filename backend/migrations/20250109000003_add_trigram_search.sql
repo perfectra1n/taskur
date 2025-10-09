@@ -45,7 +45,7 @@ RETURNS TABLE (
     assigned_to UUID[],
     reminders JSONB,
     tags TEXT[],
-    position INTEGER,
+    "position" INTEGER,
     created_at TIMESTAMPTZ,
     updated_at TIMESTAMPTZ,
     relevance FLOAT
@@ -66,7 +66,7 @@ BEGIN
         t.assigned_to,
         t.reminders,
         t.tags,
-        t.position,
+        t."position",
         t.created_at,
         t.updated_at,
         -- Calculate relevance score using trigram similarity

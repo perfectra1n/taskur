@@ -1,6 +1,7 @@
-import { useState, useRef, DragEvent } from 'react';
+import { useState, useRef } from 'react';
+import type { DragEvent } from 'react';
 import { clsx } from 'clsx';
-import { Upload, X, Image as ImageIcon, File } from 'lucide-react';
+import { Upload, X } from 'lucide-react';
 import { useMutation } from '@tanstack/react-query';
 import { api } from '../../services/api';
 
@@ -15,7 +16,6 @@ interface HeroImageUploadProps {
 
 export function HeroImageUpload({
   taskId,
-  currentImageId,
   currentImageUrl,
   onImageUploaded,
   onImageRemoved,

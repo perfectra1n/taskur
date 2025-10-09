@@ -6,7 +6,7 @@ import { Button } from '../ui/Button';
 import { Input } from '../ui/Input';
 import { DateTimePicker } from '../ui/DateTimePicker';
 import { MultiSelect, type MultiSelectOption } from '../ui/MultiSelect';
-import { X, Calendar, AlertCircle, Trash2, MessageSquare, User, Clock, Image as ImageIcon } from 'lucide-react';
+import { X, AlertCircle, Trash2, MessageSquare, User, Image as ImageIcon } from 'lucide-react';
 import { TiptapEditor } from '../editor/TiptapEditor';
 import { ReminderConfig } from './ReminderConfig';
 import { HeroImageUpload } from './HeroImageUpload';
@@ -32,7 +32,7 @@ export function TaskDetail({ task, onClose }: TaskDetailProps) {
   const [endDate, setEndDate] = useState(
     task.end_date ? format(new Date(task.end_date), 'yyyy-MM-dd') : ''
   );
-  const [heroImageId, setHeroImageId] = useState(task.hero_image_id);
+  const [heroImageId, setHeroImageId] = useState(task.hero_image_id ?? undefined);
   const [assignedTo, setAssignedTo] = useState<string[]>(task.assigned_to || []);
   const [reminders, setReminders] = useState<Reminder[]>(task.reminders || []);
 
@@ -222,7 +222,7 @@ export function TaskDetail({ task, onClose }: TaskDetailProps) {
             currentImageId={heroImageId}
             currentImageUrl={heroImageUrl}
             onImageUploaded={(id) => setHeroImageId(id)}
-            onImageRemoved={() => setHeroImageId(null)}
+            onImageRemoved={() => setHeroImageId(undefined)}
           />
         </div>
 

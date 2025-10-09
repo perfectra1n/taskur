@@ -1,5 +1,5 @@
 # Build stage
-FROM rust:1.83-slim as builder
+FROM rust:latest as builder
 
 WORKDIR /app
 
@@ -16,12 +16,13 @@ COPY Cargo.toml ./
 RUN mkdir src && echo "fn main() {}" > src/main.rs
 
 # Build dependencies (cached layer)
+ENV SQLX_OFFLINE=true
 RUN cargo build --release && rm -rf src
 
 # Copy source code
 COPY . .
 
-# Build the application
+# Build the application in offline mode (requires .sqlx directory)
 RUN cargo build --release
 
 # Runtime stage

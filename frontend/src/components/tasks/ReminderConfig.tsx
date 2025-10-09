@@ -3,7 +3,6 @@ import { clsx } from 'clsx';
 import { Plus, Trash2, Bell, Mail } from 'lucide-react';
 import type { Reminder } from '../../types';
 import { DateTimePicker } from '../ui/DateTimePicker';
-import { Button } from '../ui/Button';
 
 interface ReminderConfigProps {
   reminders: Reminder[];

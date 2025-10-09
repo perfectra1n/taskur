@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
-import { Calendar, User, Bell, Image as ImageIcon, Tag, Flag } from 'lucide-react';
+import { User, Image as ImageIcon, Tag, Flag } from 'lucide-react';
 import { api } from '../../services/api';
-import type { CreateTaskRequest, Reminder, TaskPriority, TaskStatus } from '../../types';
+import type { CreateTaskRequest, TaskPriority, TaskStatus } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
@@ -19,7 +19,6 @@ interface CreateTaskModalProps {
 }
 
 export function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
-  const [activeSection, setActiveSection] = useState<string | null>(null);
   const [formData, setFormData] = useState<CreateTaskRequest>({
     title: '',
     description: '',
@@ -66,7 +65,6 @@ export function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
       tags: [],
       list_ids: []
     });
-    setActiveSection(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
