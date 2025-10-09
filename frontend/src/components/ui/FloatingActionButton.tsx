@@ -1,4 +1,4 @@
-import { Plus, X } from 'lucide-react';
+import { Plus } from 'lucide-react';
 import { useState } from 'react';
 
 interface FloatingActionButtonProps {
@@ -22,12 +22,10 @@ export function FloatingActionButton({
   };
 
   return (
-    <div className={`fixed ${positionClasses[position]} z-50 flex items-center gap-3`}>
+    <div className={'fixed ' + positionClasses[position] + ' z-50 flex items-center gap-3'}>
       {/* Label tooltip - appears on hover */}
       <div
-        className={`transition-all duration-300 ${
-          isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2'
-        }`}
+        className={'transition-all duration-300 ' + (isHovered ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-2')}
       >
         <div className="glass-card-strong px-4 py-2 rounded-xl shadow-elevation-3 backdrop-blur-xl">
           <span className="text-sm font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">

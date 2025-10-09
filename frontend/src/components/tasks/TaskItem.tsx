@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import type { Task, TaskStatus } from '../../types';
-import { Circle, CheckCircle2, Clock, Calendar, Flag, Tag } from 'lucide-react';
+import { Circle, CheckCircle2, Clock, Calendar, Tag } from 'lucide-react';
 import { clsx } from 'clsx';
 import { format } from 'date-fns';
 
@@ -107,7 +107,7 @@ export function TaskItem({ task, onClick, isSelected }: TaskItemProps) {
               ? 'text-emerald-500 dark:text-emerald-400'
               : 'text-slate-400 dark:text-slate-500 hover:text-primary-500 dark:hover:text-primary-400'
           )}
-          aria-label={`Mark task as ${task.status === 'completed' ? 'incomplete' : 'complete'}`}
+          aria-label={'Mark task as ' + (task.status === 'completed' ? 'incomplete' : 'complete')}
         >
           <StatusIcon className={clsx(
             'w-6 h-6 transition-transform duration-300',

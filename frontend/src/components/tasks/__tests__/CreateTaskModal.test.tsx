@@ -36,7 +36,7 @@ vi.mock('../HeroImageUpload', () => ({
 
 // Mock the ReminderConfig component
 vi.mock('../ReminderConfig', () => ({
-  ReminderConfig: ({ reminders, onChange }: any) => (
+  ReminderConfig: ({ onChange }: any) => (
     <div data-testid="reminder-config">
       <button onClick={() => onChange([{ id: '1', datetime: '2025-01-15T10:00:00Z', type: 'notification' }])}>
         Add Reminder

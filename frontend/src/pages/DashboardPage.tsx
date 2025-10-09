@@ -17,7 +17,6 @@ export function DashboardPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   const logout = useAuthStore((state) => state.logout);
-  const user = useAuthStore((state) => state.user);
 
   const { data: tasks = [], isLoading } = useQuery({
     queryKey: ['tasks', searchQuery],

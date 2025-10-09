@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { CheckCircle2, XCircle, AlertCircle, Info, X } from 'lucide-react';
 
@@ -121,21 +122,21 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
 
   return (
     <div
-      className={`pointer-events-auto backdrop-blur-xl border rounded-2xl shadow-elevation-3 hover:${colors.glow} transition-all duration-300 animate-slide-left ${colors.bg} ${colors.border}`}
+      className={'pointer-events-auto backdrop-blur-xl border rounded-2xl shadow-elevation-3 hover:' + colors.glow + ' transition-all duration-300 animate-slide-left ' + colors.bg + ' ' + colors.border}
     >
       <div className="p-4 flex items-start gap-3">
         {/* Icon */}
-        <div className={`flex-shrink-0 ${colors.icon}`}>
+        <div className={'flex-shrink-0 ' + colors.icon}>
           <Icon className="w-5 h-5" strokeWidth={2} />
         </div>
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <h4 className={`font-semibold text-sm ${colors.text}`}>
+          <h4 className={'font-semibold text-sm ' + colors.text}>
             {toast.title}
           </h4>
           {toast.message && (
-            <p className={`mt-1 text-sm opacity-90 ${colors.text}`}>
+            <p className={'mt-1 text-sm opacity-90 ' + colors.text}>
               {toast.message}
             </p>
           )}
@@ -144,7 +145,7 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
         {/* Close button */}
         <button
           onClick={() => onDismiss(toast.id)}
-          className={`flex-shrink-0 p-1 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors ${colors.icon}`}
+          className={'flex-shrink-0 p-1 rounded-lg hover:bg-black/10 dark:hover:bg-white/10 transition-colors ' + colors.icon}
           aria-label="Dismiss notification"
         >
           <X className="w-4 h-4" />
@@ -155,9 +156,9 @@ function ToastItem({ toast, onDismiss }: { toast: Toast; onDismiss: (id: string)
       {toast.duration && (
         <div className="h-1 bg-black/10 dark:bg-white/10 rounded-b-2xl overflow-hidden">
           <div
-            className={`h-full ${colors.icon} opacity-50 animate-shrink-width`}
+            className={'h-full ' + colors.icon + ' opacity-50 animate-shrink-width'}
             style={{
-              animation: `shrinkWidth ${toast.duration}ms linear`
+              animation: 'shrinkWidth ' + toast.duration + 'ms linear'
             }}
           />
         </div>

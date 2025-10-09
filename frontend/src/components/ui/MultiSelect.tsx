@@ -10,7 +10,7 @@ export interface MultiSelectOption {
 }
 
 interface MultiSelectProps {
-  label?: string;
+  label?: React.ReactNode;
   options: MultiSelectOption[];
   value: string[];
   onChange: (value: string[]) => void;

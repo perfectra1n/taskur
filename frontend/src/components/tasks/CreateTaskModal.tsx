@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
-import { User, Image as ImageIcon, Tag, Flag } from 'lucide-react';
+import { User, Tag, Flag } from 'lucide-react';
 import { api } from '../../services/api';
 import type { CreateTaskRequest, TaskPriority, TaskStatus } from '../../types';
 import { Modal } from '../ui/Modal';

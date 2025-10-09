@@ -3,7 +3,6 @@ import { render, screen, waitFor } from '../../test/test-utils';
 import userEvent from '@testing-library/user-event';
 import { DashboardPage } from '../DashboardPage';
 import { api } from '../../services/api';
-import { useAuthStore } from '../../stores/authStore';
 
 // Mock the API
 vi.mock('../../services/api', () => ({
