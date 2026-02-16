@@ -36,7 +36,7 @@ pub async fn list_comments(
 
     // Verify task ownership
     let _task = sqlx::query_as::<_, Task>(
-        "SELECT * FROM tasks WHERE id = $1 AND user_id = $2"
+        "SELECT *, NULL::real AS relevance FROM tasks WHERE id = $1 AND user_id = $2"
     )
     .bind(task_id)
     .bind(auth.user_id)
@@ -87,7 +87,7 @@ pub async fn create_comment(
 
     // Verify task ownership
     let _task = sqlx::query_as::<_, Task>(
-        "SELECT * FROM tasks WHERE id = $1 AND user_id = $2"
+        "SELECT *, NULL::real AS relevance FROM tasks WHERE id = $1 AND user_id = $2"
     )
     .bind(task_id)
     .bind(auth.user_id)
@@ -143,7 +143,7 @@ pub async fn update_comment(
 
     // Verify task ownership
     let _task = sqlx::query_as::<_, Task>(
-        "SELECT * FROM tasks WHERE id = $1 AND user_id = $2"
+        "SELECT *, NULL::real AS relevance FROM tasks WHERE id = $1 AND user_id = $2"
     )
     .bind(task_id)
     .bind(auth.user_id)

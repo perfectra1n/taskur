@@ -1,11 +1,13 @@
 use crate::{
+    config::Config,
     db::DbPool,
     errors::{AppError, AppResult},
     middleware::AuthenticatedUser,
     models::{Attachment, AttachmentResponse},
+    utils,
 };
 use actix_multipart::Multipart;
-use actix_web::{web, HttpResponse};
+use actix_web::{web, HttpRequest, HttpResponse};
 use chrono::Utc;
 use futures_util::StreamExt;
 use std::io::Write;
@@ -151,9 +153,16 @@ pub async fn list_attachments(
     Ok(HttpResponse::Ok().json(responses))
 }
 
+/// Query parameter for token-based auth (used by img tags)
+#[derive(Debug, serde::Deserialize)]
+pub struct TokenQuery {
+    pub token: Option<String>,
+}
+
 /// Download an attachment file.
 ///
 /// Returns the file content with appropriate headers for download.
+/// Supports auth via Authorization header or `?token=` query parameter.
 #[utoipa::path(
     get,
     path = "/api/attachments/{id}",
@@ -171,9 +180,28 @@ pub async fn list_attachments(
 )]
 pub async fn download_attachment(
     pool: web::Data<DbPool>,
-    auth: AuthenticatedUser,
+    req: HttpRequest,
     path: web::Path<Uuid>,
+    query: web::Query<TokenQuery>,
 ) -> AppResult<actix_files::NamedFile> {
+    let config = Config::from_env();
+
+    // Authenticate from Authorization header or ?token= query param
+    let user_id = if let Some(auth_header) = req.headers().get("Authorization") {
+        let auth_str = auth_header.to_str()
+            .map_err(|_| AppError::AuthenticationError("Invalid authorization header".to_string()))?;
+        if !auth_str.starts_with("Bearer ") {
+            return Err(AppError::AuthenticationError("Invalid authorization format".to_string()));
+        }
+        let claims = utils::verify_token(&auth_str[7..], &config.jwt_secret)?;
+        claims.user_id().map_err(|_| AppError::AuthenticationError("Invalid user ID in token".to_string()))?
+    } else if let Some(ref token) = query.token {
+        let claims = utils::verify_token(token, &config.jwt_secret)?;
+        claims.user_id().map_err(|_| AppError::AuthenticationError("Invalid user ID in token".to_string()))?
+    } else {
+        return Err(AppError::AuthenticationError("Missing authorization".to_string()));
+    };
+
     let attachment_id = path.into_inner();
 
     let attachment = sqlx::query_as::<_, Attachment>(
@@ -185,14 +213,14 @@ pub async fn download_attachment(
     .ok_or_else(|| AppError::NotFound("Attachment not found".to_string()))?;
 
     // Verify user has access to this attachment
-    if attachment.user_id != auth.user_id {
+    if attachment.user_id != user_id {
         return Err(AppError::AuthenticationError("Access denied".to_string()));
     }
 
     let file = actix_files::NamedFile::open(&attachment.file_path)
         .map_err(|e| AppError::InternalError(format!("Failed to open file: {}", e)))?
         .set_content_disposition(actix_web::http::header::ContentDisposition {
-            disposition: actix_web::http::header::DispositionType::Attachment,
+            disposition: actix_web::http::header::DispositionType::Inline,
             parameters: vec![actix_web::http::header::DispositionParam::Filename(attachment.original_filename)],
         });
 

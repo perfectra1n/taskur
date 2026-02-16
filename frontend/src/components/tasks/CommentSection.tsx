@@ -77,6 +77,11 @@ export function CommentSection({ taskId, comments, attachments }: CommentSection
     return attachments.filter((att) => att.comment_id === commentId);
   };
 
+  const getAuthUrl = (url: string) => {
+    const token = localStorage.getItem('auth_token');
+    return token ? `${url}?token=${token}` : url;
+  };
+
   const renderAttachment = (attachment: Attachment) => {
     const isImage = attachment.mime_type.startsWith('image/');
 
@@ -84,13 +89,13 @@ export function CommentSection({ taskId, comments, attachments }: CommentSection
       return (
         <a
           key={attachment.id}
-          href={attachment.download_url}
+          href={getAuthUrl(attachment.download_url)}
           target="_blank"
           rel="noopener noreferrer"
           className="block w-32 h-32 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 hover:border-primary-500 transition-colors"
         >
           <img
-            src={attachment.download_url}
+            src={getAuthUrl(attachment.download_url)}
             alt={attachment.original_filename}
             className="w-full h-full object-cover"
           />
@@ -101,7 +106,7 @@ export function CommentSection({ taskId, comments, attachments }: CommentSection
     return (
       <a
         key={attachment.id}
-        href={attachment.download_url}
+        href={getAuthUrl(attachment.download_url)}
         target="_blank"
         rel="noopener noreferrer"
         className="flex items-center gap-2 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-700 hover:border-primary-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"

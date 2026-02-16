@@ -109,7 +109,11 @@ export function TaskDetail({ task, onClose }: TaskDetailProps) {
   }));
 
   const heroImageUrl = heroImageId
-    ? attachments.find(a => a.id === heroImageId)?.download_url
+    ? (() => {
+        const url = attachments.find(a => a.id === heroImageId)?.download_url;
+        const token = localStorage.getItem('auth_token');
+        return url && token ? `${url}?token=${token}` : url;
+      })()
     : null;
 
   return (
