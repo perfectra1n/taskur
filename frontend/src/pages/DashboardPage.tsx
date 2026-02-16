@@ -9,12 +9,12 @@ import { TaskList } from '../components/tasks/TaskList';
 import { TaskDetail } from '../components/tasks/TaskDetail';
 import { CreateTaskModal } from '../components/tasks/CreateTaskModal';
 import { LogOut, Plus, Search, LayoutDashboard, Filter, SortDesc } from 'lucide-react';
-import type { Task } from '../types';
 
 export function DashboardPage() {
-  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'completed'>('all');
 
   const logout = useAuthStore((state) => state.logout);
 
@@ -22,6 +22,16 @@ export function DashboardPage() {
     queryKey: ['tasks', searchQuery],
     queryFn: () => api.getTasks(searchQuery ? { search: searchQuery } : undefined),
   });
+
+  const selectedTask = selectedTaskId
+    ? tasks.find((t) => t.id === selectedTaskId) ?? null
+    : null;
+
+  const filteredTasks = activeFilter === 'all'
+    ? tasks
+    : activeFilter === 'active'
+      ? tasks.filter((t) => t.status !== 'completed')
+      : tasks.filter((t) => t.status === 'completed');
 
   const handleLogout = () => {
     logout();
@@ -40,15 +50,15 @@ export function DashboardPage() {
       if (e.key === 'Escape') {
         if (isCreateModalOpen) {
           setIsCreateModalOpen(false);
-        } else if (selectedTask) {
-          setSelectedTask(null);
+        } else if (selectedTaskId) {
+          setSelectedTaskId(null);
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [selectedTask, isCreateModalOpen]);
+  }, [selectedTaskId, isCreateModalOpen]);
 
   return (
     <div className="h-screen flex flex-col bg-slate-50 dark:bg-slate-950">
@@ -112,7 +122,10 @@ export function DashboardPage() {
           <aside className="hidden lg:flex w-56 border-r border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
             <div className="p-4 w-full">
               <nav className="space-y-1">
-                <button className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 rounded-lg transition-colors">
+                <button
+                  onClick={() => setActiveFilter('all')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${activeFilter === 'all' ? 'text-white bg-primary-600 hover:bg-primary-700' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                >
                   <LayoutDashboard className="w-4 h-4" />
                   All Tasks
                   <span className="ml-auto text-xs">
@@ -126,7 +139,10 @@ export function DashboardPage() {
                   </p>
                 </div>
 
-                <button className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                <button
+                  onClick={() => setActiveFilter('active')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${activeFilter === 'active' ? 'text-white bg-primary-600 hover:bg-primary-700' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                >
                   <Filter className="w-4 h-4" />
                   Active
                   <span className="ml-auto px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded text-xs">
@@ -134,7 +150,10 @@ export function DashboardPage() {
                   </span>
                 </button>
 
-                <button className="w-full flex items-center gap-2 px-3 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors">
+                <button
+                  onClick={() => setActiveFilter('completed')}
+                  className={`w-full flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${activeFilter === 'completed' ? 'text-white bg-primary-600 hover:bg-primary-700' : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'}`}
+                >
                   <SortDesc className="w-4 h-4" />
                   Completed
                   <span className="ml-auto px-1.5 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 rounded text-xs">
@@ -154,7 +173,7 @@ export function DashboardPage() {
                   Tasks
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  {tasks.length} {tasks.length === 1 ? 'task' : 'tasks'}
+                  {filteredTasks.length} {filteredTasks.length === 1 ? 'task' : 'tasks'}
                 </p>
               </div>
 
@@ -175,9 +194,9 @@ export function DashboardPage() {
                 </div>
               ) : (
                 <TaskList
-                  tasks={tasks}
-                  onTaskClick={setSelectedTask}
-                  selectedTaskId={selectedTask?.id}
+                  tasks={filteredTasks}
+                  onTaskClick={(task) => setSelectedTaskId(task.id)}
+                  selectedTaskId={selectedTaskId ?? undefined}
                 />
               )}
             </div>
@@ -188,7 +207,7 @@ export function DashboardPage() {
             <div className="hidden xl:block">
               <TaskDetail
                 task={selectedTask}
-                onClose={() => setSelectedTask(null)}
+                onClose={() => setSelectedTaskId(null)}
               />
             </div>
           )}
@@ -211,11 +230,11 @@ export function DashboardPage() {
 
       {/* Mobile Task Detail Modal */}
       {selectedTask && (
-        <div className="xl:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setSelectedTask(null)}>
+        <div className="xl:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setSelectedTaskId(null)}>
           <div className="absolute inset-y-0 right-0 w-full sm:w-96" onClick={(e) => e.stopPropagation()}>
             <TaskDetail
               task={selectedTask}
-              onClose={() => setSelectedTask(null)}
+              onClose={() => setSelectedTaskId(null)}
             />
           </div>
         </div>

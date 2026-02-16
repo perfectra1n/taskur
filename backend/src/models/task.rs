@@ -121,25 +121,40 @@ pub struct CreateTaskRequest {
 /// Request payload for updating an existing task.
 ///
 /// All fields are optional - only provided fields will be updated.
+/// For clearable fields (description, dates, hero_image_id), we use
+/// `Option<Option<T>>` where:
+/// - `None` (key absent from JSON) = field not provided, keep existing value
+/// - `Some(None)` (key present with `null`) = explicitly clear the field
+/// - `Some(Some(v))` (key present with value) = set to new value
 #[derive(Debug, Deserialize, ToSchema)]
 pub struct UpdateTaskRequest {
     /// Updated task title
     #[schema(example = "Complete project documentation")]
     pub title: Option<String>,
-    /// Updated task description
-    pub description: Option<String>,
+    /// Updated task description (nullable — send null to clear)
+    #[serde(default, deserialize_with = "deserialize_double_option")]
+    #[schema(nullable, value_type = Option<String>)]
+    pub description: Option<Option<String>>,
     /// Updated task status
     pub status: Option<TaskStatus>,
     /// Updated task priority
     pub priority: Option<TaskPriority>,
-    /// Updated due date
-    pub due_date: Option<DateTime<Utc>>,
-    /// Updated start date
-    pub start_date: Option<DateTime<Utc>>,
-    /// Updated end date
-    pub end_date: Option<DateTime<Utc>>,
-    /// Updated hero image ID
-    pub hero_image_id: Option<Uuid>,
+    /// Updated due date (nullable — send null to clear)
+    #[serde(default, deserialize_with = "deserialize_double_option")]
+    #[schema(nullable, value_type = Option<String>)]
+    pub due_date: Option<Option<DateTime<Utc>>>,
+    /// Updated start date (nullable — send null to clear)
+    #[serde(default, deserialize_with = "deserialize_double_option")]
+    #[schema(nullable, value_type = Option<String>)]
+    pub start_date: Option<Option<DateTime<Utc>>>,
+    /// Updated end date (nullable — send null to clear)
+    #[serde(default, deserialize_with = "deserialize_double_option")]
+    #[schema(nullable, value_type = Option<String>)]
+    pub end_date: Option<Option<DateTime<Utc>>>,
+    /// Updated hero image ID (nullable — send null to clear)
+    #[serde(default, deserialize_with = "deserialize_double_option")]
+    #[schema(nullable, value_type = Option<String>)]
+    pub hero_image_id: Option<Option<Uuid>>,
     /// Updated assigned users
     pub assigned_to: Option<Vec<Uuid>>,
     /// Updated reminders
@@ -149,6 +164,16 @@ pub struct UpdateTaskRequest {
     pub tags: Option<Vec<String>>,
     /// Updated position
     pub position: Option<i32>,
+}
+
+/// Deserializes a double-option field from JSON.
+/// Missing key → `None`, explicit `null` → `Some(None)`, value → `Some(Some(v))`.
+fn deserialize_double_option<'de, T, D>(deserializer: D) -> Result<Option<Option<T>>, D::Error>
+where
+    T: Deserialize<'de>,
+    D: serde::Deserializer<'de>,
+{
+    Ok(Some(Option::deserialize(deserializer)?))
 }
 
 /// Query parameters for filtering tasks.

@@ -3,6 +3,7 @@ import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import type { Task, TaskStatus, TaskPriority, Reminder } from '../../types';
 import { Button } from '../ui/Button';
+import { useSuccessToast, useErrorToast } from '../ui/Toast';
 import { Input } from '../ui/Input';
 import { DateTimePicker } from '../ui/DateTimePicker';
 import { MultiSelect, type MultiSelectOption } from '../ui/MultiSelect';
@@ -37,6 +38,8 @@ export function TaskDetail({ task, onClose }: TaskDetailProps) {
   const [reminders, setReminders] = useState<Reminder[]>(task.reminders || []);
 
   const queryClient = useQueryClient();
+  const showSuccess = useSuccessToast();
+  const showError = useErrorToast();
 
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['team-members'],
@@ -47,18 +50,22 @@ export function TaskDetail({ task, onClose }: TaskDetailProps) {
     mutationFn: () =>
       api.updateTask(task.id, {
         title,
-        description: description || undefined,
+        description: description || null,
         status,
         priority,
-        due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
-        start_date: startDate ? new Date(startDate).toISOString() : undefined,
-        end_date: endDate ? new Date(endDate).toISOString() : undefined,
-        hero_image_id: heroImageId,
+        due_date: dueDate ? new Date(dueDate).toISOString() : null,
+        start_date: startDate ? new Date(startDate).toISOString() : null,
+        end_date: endDate ? new Date(endDate).toISOString() : null,
+        hero_image_id: heroImageId ?? null,
         assigned_to: assignedTo.length > 0 ? assignedTo : undefined,
         reminders: reminders.length > 0 ? reminders : undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      showSuccess('Task saved');
+    },
+    onError: () => {
+      showError('Failed to save task');
     },
   });
 
@@ -66,7 +73,11 @@ export function TaskDetail({ task, onClose }: TaskDetailProps) {
     mutationFn: () => api.deleteTask(task.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      showSuccess('Task deleted');
       onClose();
+    },
+    onError: () => {
+      showError('Failed to delete task');
     },
   });
 

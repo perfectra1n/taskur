@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { api } from '../../services/api';
 import { Button } from '../ui/Button';
+import { useErrorToast } from '../ui/Toast';
 import { Paperclip, Send, X, FileText, Image as ImageIcon } from 'lucide-react';
 import type { Comment, Attachment } from '../../types';
 import { format } from 'date-fns';
@@ -16,6 +17,7 @@ export function CommentSection({ taskId, comments, attachments }: CommentSection
   const [newComment, setNewComment] = useState('');
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const queryClient = useQueryClient();
+  const showError = useErrorToast();
 
   const createCommentMutation = useMutation({
     mutationFn: async () => {
@@ -38,12 +40,18 @@ export function CommentSection({ taskId, comments, attachments }: CommentSection
       setNewComment('');
       setSelectedFiles([]);
     },
+    onError: () => {
+      showError('Failed to add comment');
+    },
   });
 
   const deleteCommentMutation = useMutation({
     mutationFn: (commentId: string) => api.deleteComment(taskId, commentId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['comments', taskId] });
+    },
+    onError: () => {
+      showError('Failed to delete comment');
     },
   });
 

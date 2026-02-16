@@ -5,7 +5,7 @@ use crate::{
     models::{CreateTaskRequest, Task, TaskFilter, TaskPriority, TaskStatus, UnifiedSearchResult, UpdateTaskRequest},
 };
 use actix_web::{web, HttpResponse};
-use chrono::Utc;
+use chrono::{DateTime, Utc};
 use utoipa;
 use uuid::Uuid;
 use validator::Validate;
@@ -282,16 +282,39 @@ pub async fn update_task(
     .await?
     .ok_or_else(|| AppError::NotFound("Task not found".to_string()))?;
 
+    // For clearable fields (double-Option), resolve to the correct value:
+    // None → keep existing, Some(None) → set NULL, Some(Some(v)) → set v
+    let description_val: Option<String> = match &body.description {
+        None => existing_task.description.clone(),
+        Some(inner) => inner.clone(),
+    };
+    let due_date_val: Option<DateTime<Utc>> = match &body.due_date {
+        None => existing_task.due_date,
+        Some(inner) => *inner,
+    };
+    let start_date_val: Option<DateTime<Utc>> = match &body.start_date {
+        None => existing_task.start_date,
+        Some(inner) => *inner,
+    };
+    let end_date_val: Option<DateTime<Utc>> = match &body.end_date {
+        None => existing_task.end_date,
+        Some(inner) => *inner,
+    };
+    let hero_image_id_val: Option<Uuid> = match &body.hero_image_id {
+        None => existing_task.hero_image_id,
+        Some(inner) => *inner,
+    };
+
     let updated_task = sqlx::query_as::<_, Task>(
         "UPDATE tasks
          SET title = COALESCE($1, title),
-             description = COALESCE($2, description),
+             description = $2,
              status = COALESCE($3, status),
              priority = COALESCE($4, priority),
-             due_date = COALESCE($5, due_date),
-             start_date = COALESCE($6, start_date),
-             end_date = COALESCE($7, end_date),
-             hero_image_id = COALESCE($8, hero_image_id),
+             due_date = $5,
+             start_date = $6,
+             end_date = $7,
+             hero_image_id = $8,
              assigned_to = COALESCE($9, assigned_to),
              reminders = COALESCE($10, reminders),
              tags = COALESCE($11, tags),
@@ -301,13 +324,13 @@ pub async fn update_task(
          RETURNING *"
     )
     .bind(&body.title)
-    .bind(&body.description)
+    .bind(&description_val)
     .bind(&body.status)
     .bind(&body.priority)
-    .bind(&body.due_date)
-    .bind(&body.start_date)
-    .bind(&body.end_date)
-    .bind(&body.hero_image_id)
+    .bind(&due_date_val)
+    .bind(&start_date_val)
+    .bind(&end_date_val)
+    .bind(&hero_image_id_val)
     .bind(&body.assigned_to)
     .bind(&body.reminders)
     .bind(&body.tags)

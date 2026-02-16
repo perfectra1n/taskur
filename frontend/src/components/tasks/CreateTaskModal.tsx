@@ -9,6 +9,7 @@ import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
 import { DateTimePicker } from '../ui/DateTimePicker';
 import { MultiSelect, type MultiSelectOption } from '../ui/MultiSelect';
+import { useSuccessToast, useErrorToast } from '../ui/Toast';
 import { TiptapEditor } from '../editor/TiptapEditor';
 import { ReminderConfig } from './ReminderConfig';
 import { HeroImageUpload } from './HeroImageUpload';
@@ -33,8 +34,11 @@ export function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
     tags: [],
     list_ids: []
   });
+  const [pendingHeroFile, setPendingHeroFile] = useState<File | null>(null);
 
   const queryClient = useQueryClient();
+  const showSuccess = useSuccessToast();
+  const showError = useErrorToast();
 
   const { data: teamMembers = [] } = useQuery({
     queryKey: ['team-members'],
@@ -43,11 +47,30 @@ export function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
 
   const createMutation = useMutation({
     mutationFn: (data: CreateTaskRequest) => api.createTask(data),
-    onSuccess: () => {
+    onSuccess: async (newTask) => {
+      // If there's a pending hero image file, upload it now
+      if (pendingHeroFile) {
+        try {
+          const formData = new FormData();
+          formData.append('file', pendingHeroFile);
+          const dataTransfer = new DataTransfer();
+          dataTransfer.items.add(pendingHeroFile);
+          const attachments = await api.uploadAttachment(newTask.id, dataTransfer.files);
+          if (attachments.length > 0) {
+            await api.updateTask(newTask.id, { hero_image_id: attachments[0].id });
+          }
+        } catch {
+          showError('Task created but hero image upload failed');
+        }
+      }
       queryClient.invalidateQueries({ queryKey: ['tasks'] });
+      showSuccess('Task created');
       onClose();
       resetForm();
-    }
+    },
+    onError: () => {
+      showError('Failed to create task');
+    },
   });
 
   const resetForm = () => {
@@ -65,19 +88,21 @@ export function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
       tags: [],
       list_ids: []
     });
+    setPendingHeroFile(null);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.title.trim()) return;
 
-    // Clean up empty fields
+    // Clean up empty fields and convert dates to ISO strings
     const cleanData: CreateTaskRequest = {
       ...formData,
       description: formData.description || undefined,
-      due_date: formData.due_date || undefined,
-      start_date: formData.start_date || undefined,
-      end_date: formData.end_date || undefined,
+      due_date: formData.due_date ? new Date(formData.due_date).toISOString() : undefined,
+      start_date: formData.start_date ? new Date(formData.start_date).toISOString() : undefined,
+      end_date: formData.end_date ? new Date(formData.end_date).toISOString() : undefined,
+      hero_image_id: undefined, // handled after creation
       assigned_to: formData.assigned_to?.length ? formData.assigned_to : undefined,
       reminders: formData.reminders?.length ? formData.reminders : undefined,
       tags: formData.tags?.length ? formData.tags : undefined
@@ -114,7 +139,8 @@ export function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
             <HeroImageUpload
               currentImageId={formData.hero_image_id}
               onImageUploaded={(id) => setFormData({ ...formData, hero_image_id: id })}
-              onImageRemoved={() => setFormData({ ...formData, hero_image_id: undefined })}
+              onImageRemoved={() => { setFormData({ ...formData, hero_image_id: undefined }); setPendingHeroFile(null); }}
+              onFileSelected={(file) => setPendingHeroFile(file)}
             />
           </div>
 

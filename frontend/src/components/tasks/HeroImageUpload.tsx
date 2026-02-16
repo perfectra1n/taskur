@@ -11,6 +11,7 @@ interface HeroImageUploadProps {
   currentImageUrl?: string | null;
   onImageUploaded: (attachmentId: string, url: string) => void;
   onImageRemoved: () => void;
+  onFileSelected?: (file: File) => void;
   className?: string;
 }
 
@@ -19,6 +20,7 @@ export function HeroImageUpload({
   currentImageUrl,
   onImageUploaded,
   onImageRemoved,
+  onFileSelected,
   className
 }: HeroImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
@@ -28,15 +30,15 @@ export function HeroImageUpload({
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       if (!taskId) {
-        // For new tasks, we'll just create a preview
+        // For new tasks, store file for deferred upload and show local preview
         const url = URL.createObjectURL(file);
+        onFileSelected?.(file);
         return { id: 'temp-' + Date.now(), url };
       }
 
       const formData = new FormData();
       formData.append('file', file);
 
-      // Create a FileList-like object from single file
       const dataTransfer = new DataTransfer();
       dataTransfer.items.add(file);
       const fileList = dataTransfer.files;

@@ -55,13 +55,13 @@ export interface CreateTaskRequest {
 
 export interface UpdateTaskRequest {
   title?: string;
-  description?: string;
+  description?: string | null;
   status?: TaskStatus;
   priority?: TaskPriority;
-  due_date?: string;
-  start_date?: string;
-  end_date?: string;
-  hero_image_id?: string;
+  due_date?: string | null;
+  start_date?: string | null;
+  end_date?: string | null;
+  hero_image_id?: string | null;
   assigned_to?: string[];
   reminders?: Reminder[];
   tags?: string[];
