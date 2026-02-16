@@ -56,7 +56,7 @@ pub async fn list_tasks(
     }
 
     // Standard filtering without search
-    let mut sql = "SELECT * FROM tasks WHERE user_id = $1".to_string();
+    let mut sql = "SELECT *, NULL::real AS relevance FROM tasks WHERE user_id = $1".to_string();
     let mut params_count = 1;
 
     if query.status.is_some() {
@@ -156,7 +156,7 @@ pub async fn create_task(
     let task = sqlx::query_as::<_, Task>(
         "INSERT INTO tasks (id, user_id, title, description, status, priority, due_date, start_date, end_date, hero_image_id, assigned_to, reminders, tags, position, created_at, updated_at)
          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
-         RETURNING *"
+         RETURNING *, NULL::real AS relevance"
     )
     .bind(Uuid::new_v4())
     .bind(auth.user_id)
@@ -226,7 +226,7 @@ pub async fn get_task(
     let task_id = path.into_inner();
 
     let task = sqlx::query_as::<_, Task>(
-        "SELECT * FROM tasks WHERE id = $1 AND user_id = $2"
+        "SELECT *, NULL::real AS relevance FROM tasks WHERE id = $1 AND user_id = $2"
     )
     .bind(task_id)
     .bind(auth.user_id)
@@ -274,7 +274,7 @@ pub async fn update_task(
 
     // Verify task ownership
     let existing_task = sqlx::query_as::<_, Task>(
-        "SELECT * FROM tasks WHERE id = $1 AND user_id = $2"
+        "SELECT *, NULL::real AS relevance FROM tasks WHERE id = $1 AND user_id = $2"
     )
     .bind(task_id)
     .bind(auth.user_id)
@@ -321,7 +321,7 @@ pub async fn update_task(
              position = COALESCE($12, position),
              updated_at = $13
          WHERE id = $14 AND user_id = $15
-         RETURNING *"
+         RETURNING *, NULL::real AS relevance"
     )
     .bind(&body.title)
     .bind(&description_val)
@@ -438,12 +438,14 @@ pub async fn unified_search(
 }
 
 /// Query parameters for unified search
-#[derive(Debug, serde::Deserialize, utoipa::ToSchema, utoipa::IntoParams)]
+#[derive(Debug, serde::Deserialize, utoipa::ToSchema, utoipa::IntoParams, ts_rs::TS)]
+#[ts(export)]
 pub struct UnifiedSearchQuery {
     /// Search query string
     #[schema(example = "project")]
     pub q: String,
     /// Maximum number of results (default: 50)
     #[schema(example = 20)]
+    #[ts(optional)]
     pub limit: Option<i32>,
 }

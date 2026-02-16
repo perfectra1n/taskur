@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use ts_rs::TS;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -8,7 +9,8 @@ use uuid::Uuid;
 ///
 /// Comments allow users to add notes, discussions, and updates
 /// to tasks for collaboration.
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema, TS)]
+#[ts(export)]
 pub struct Comment {
     /// Unique identifier for the comment
     pub id: Uuid,
@@ -26,7 +28,8 @@ pub struct Comment {
 }
 
 /// Request payload for creating a new comment.
-#[derive(Debug, Deserialize, validator::Validate, ToSchema)]
+#[derive(Debug, Deserialize, validator::Validate, ToSchema, TS)]
+#[ts(export)]
 pub struct CreateCommentRequest {
     /// Comment content (minimum 1 character)
     #[validate(length(min = 1, message = "Comment cannot be empty"))]
@@ -35,7 +38,8 @@ pub struct CreateCommentRequest {
 }
 
 /// Request payload for updating an existing comment.
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema, TS)]
+#[ts(export)]
 pub struct UpdateCommentRequest {
     /// Updated comment content
     #[schema(example = "This task is no longer blocked")]

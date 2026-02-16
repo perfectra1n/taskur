@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use ts_rs::TS;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -40,7 +41,8 @@ pub struct Attachment {
 /// Public attachment information response.
 ///
 /// Contains safe-to-expose attachment data with download URL.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize, ToSchema, TS)]
+#[ts(export)]
 pub struct AttachmentResponse {
     /// Unique identifier for the attachment
     pub id: Uuid,
@@ -53,6 +55,7 @@ pub struct AttachmentResponse {
     pub original_filename: String,
     /// File size in bytes
     #[schema(example = 1024000)]
+    #[ts(type = "number")]
     pub file_size: i64,
     /// MIME type
     #[schema(example = "application/pdf")]

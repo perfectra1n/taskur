@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use ts_rs::TS;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -8,7 +9,8 @@ use uuid::Uuid;
 ///
 /// Represents a team member with profile information
 /// and role assignment.
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema, TS)]
+#[ts(export)]
 pub struct TeamMember {
     /// Unique identifier for the team member
     pub id: Uuid,
@@ -33,7 +35,8 @@ pub struct TeamMember {
 }
 
 /// Request payload for creating a new team member.
-#[derive(Debug, Deserialize, validator::Validate, ToSchema)]
+#[derive(Debug, Deserialize, validator::Validate, ToSchema, TS)]
+#[ts(export)]
 pub struct CreateTeamMemberRequest {
     /// Display name (1-255 characters)
     #[validate(length(min = 1, max = 255, message = "Name must be 1-255 characters"))]
@@ -42,30 +45,38 @@ pub struct CreateTeamMemberRequest {
     /// Optional email address (must be valid format)
     #[validate(email(message = "Invalid email format"))]
     #[schema(example = "john.doe@example.com")]
+    #[ts(optional)]
     pub email: Option<String>,
     /// Optional avatar URL
     #[schema(example = "https://example.com/avatar.jpg")]
+    #[ts(optional)]
     pub avatar_url: Option<String>,
     /// Optional role description
     #[schema(example = "Senior Developer")]
+    #[ts(optional)]
     pub role: Option<String>,
 }
 
 /// Request payload for updating an existing team member.
 ///
 /// All fields are optional - only provided fields will be updated.
-#[derive(Debug, Deserialize, ToSchema)]
+#[derive(Debug, Deserialize, ToSchema, TS)]
+#[ts(export)]
 pub struct UpdateTeamMemberRequest {
     /// Updated name
     #[schema(example = "John Doe")]
+    #[ts(optional)]
     pub name: Option<String>,
     /// Updated email
     #[schema(example = "john.doe@example.com")]
+    #[ts(optional)]
     pub email: Option<String>,
     /// Updated avatar URL
     #[schema(example = "https://example.com/avatar.jpg")]
+    #[ts(optional)]
     pub avatar_url: Option<String>,
     /// Updated role
     #[schema(example = "Lead Developer")]
+    #[ts(optional)]
     pub role: Option<String>,
 }

@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use ts_rs::TS;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -43,7 +44,8 @@ pub struct CreateUserRequest {
 /// Request payload for user login.
 ///
 /// Contains credentials required to authenticate a user.
-#[derive(Debug, Deserialize, validator::Validate, ToSchema)]
+#[derive(Debug, Deserialize, validator::Validate, ToSchema, TS)]
+#[ts(export)]
 pub struct LoginRequest {
     /// User's email address
     #[validate(email(message = "Invalid email format"))]
@@ -58,7 +60,8 @@ pub struct LoginRequest {
 ///
 /// Contains a JWT token and user information after successful
 /// registration or login.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize, ToSchema, TS)]
+#[ts(export)]
 pub struct AuthResponse {
     /// JWT authentication token (use in Authorization header)
     #[schema(example = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...")]
@@ -71,7 +74,8 @@ pub struct AuthResponse {
 ///
 /// Contains safe-to-expose user data without sensitive information
 /// like password hashes.
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Debug, Serialize, ToSchema, TS)]
+#[ts(export)]
 pub struct UserResponse {
     /// Unique identifier for the user
     pub id: Uuid,

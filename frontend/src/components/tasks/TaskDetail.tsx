@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQueryClient, useQuery } from '@tanstack/react-query';
 import { api } from '../../services/api';
-import type { Task, TaskStatus, TaskPriority, Reminder } from '../../types';
+import type { Task, TaskStatus, TaskPriority, Reminder, UpdateTaskRequest } from '../../types';
 import { Button } from '../ui/Button';
 import { useSuccessToast, useErrorToast } from '../ui/Toast';
 import { Input } from '../ui/Input';
@@ -35,7 +35,7 @@ export function TaskDetail({ task, onClose }: TaskDetailProps) {
   );
   const [heroImageId, setHeroImageId] = useState(task.hero_image_id ?? undefined);
   const [assignedTo, setAssignedTo] = useState<string[]>(task.assigned_to || []);
-  const [reminders, setReminders] = useState<Reminder[]>(task.reminders || []);
+  const [reminders, setReminders] = useState<Reminder[]>((task.reminders ?? []) as unknown as Reminder[]);
 
   const queryClient = useQueryClient();
   const showSuccess = useSuccessToast();
@@ -58,7 +58,7 @@ export function TaskDetail({ task, onClose }: TaskDetailProps) {
         end_date: endDate ? new Date(endDate).toISOString() : null,
         hero_image_id: heroImageId ?? null,
         assigned_to: assignedTo.length > 0 ? assignedTo : undefined,
-        reminders: reminders.length > 0 ? reminders : undefined,
+        reminders: reminders.length > 0 ? reminders as unknown as UpdateTaskRequest['reminders'] : undefined,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['tasks'] });

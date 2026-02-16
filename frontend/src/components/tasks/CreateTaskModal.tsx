@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { clsx } from 'clsx';
 import { User, Tag, Flag } from 'lucide-react';
 import { api } from '../../services/api';
-import type { CreateTaskRequest, TaskPriority, TaskStatus } from '../../types';
+import type { CreateTaskRequest, TaskPriority, TaskStatus, Reminder } from '../../types';
 import { Modal } from '../ui/Modal';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
@@ -104,7 +104,7 @@ export function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
       end_date: formData.end_date ? new Date(formData.end_date).toISOString() : undefined,
       hero_image_id: undefined, // handled after creation
       assigned_to: formData.assigned_to?.length ? formData.assigned_to : undefined,
-      reminders: formData.reminders?.length ? formData.reminders : undefined,
+      reminders: (formData.reminders as unknown as Reminder[])?.length ? formData.reminders : undefined,
       tags: formData.tags?.length ? formData.tags : undefined
     };
 
@@ -261,8 +261,8 @@ export function CreateTaskModal({ isOpen, onClose }: CreateTaskModalProps) {
           {/* Reminders */}
           <div>
             <ReminderConfig
-              reminders={formData.reminders || []}
-              onChange={(reminders) => setFormData({ ...formData, reminders })}
+              reminders={(formData.reminders ?? []) as unknown as Reminder[]}
+              onChange={(reminders) => setFormData({ ...formData, reminders: reminders as unknown as CreateTaskRequest['reminders'] })}
             />
           </div>
 

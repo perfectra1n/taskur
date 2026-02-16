@@ -1,6 +1,7 @@
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx::FromRow;
+use ts_rs::TS;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -8,7 +9,8 @@ use uuid::Uuid;
 ///
 /// Tags provide a flexible way to label and categorize tasks
 /// across different lists.
-#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema)]
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow, ToSchema, TS)]
+#[ts(export)]
 pub struct Tag {
     /// Unique identifier for the tag
     pub id: Uuid,
@@ -25,7 +27,8 @@ pub struct Tag {
 }
 
 /// Request payload for creating a new tag.
-#[derive(Debug, Deserialize, validator::Validate, ToSchema)]
+#[derive(Debug, Deserialize, validator::Validate, ToSchema, TS)]
+#[ts(export)]
 pub struct CreateTagRequest {
     /// Tag name (1-50 characters)
     #[validate(length(min = 1, max = 50, message = "Name must be 1-50 characters"))]
@@ -33,5 +36,6 @@ pub struct CreateTagRequest {
     pub name: String,
     /// Optional hex color code
     #[schema(example = "#ef4444")]
+    #[ts(optional)]
     pub color: Option<String>,
 }

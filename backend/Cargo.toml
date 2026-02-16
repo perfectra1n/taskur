@@ -45,6 +45,9 @@ validator = { version = "0.18", features = ["derive"] }
 anyhow = "1.0"
 thiserror = "2.0"
 
+# TypeScript type generation
+ts-rs = { version = "12", features = ["chrono-impl", "uuid-impl", "serde-json-impl", "serde-compat"] }
+
 # OpenAPI/Swagger documentation
 utoipa = { version = "5.2", features = ["actix_extras", "uuid", "chrono"] }
 utoipa-swagger-ui = { version = "8.1", features = ["actix-web"] }
